@@ -19,7 +19,7 @@ Other Changes and Additions
 
 - Added Python 3.14 to the CI test matrix. The dev-dependencies job now runs
   on Python 3.15, and CI jobs are named by role (oldest/intermediate/current/
-  latest Python) instead of by version.
+  latest Python) instead of by version. [#1349]
 
 2.4.0 (2026-06-01)
 ------------------
