@@ -17,6 +17,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Job names describe roles ("oldest"/"intermediate"/"current"/"latest" Python)
+  # rather than versions, so they stay stable if they are made required status
+  # checks. When bumping Python versions, change the python/toxenv values below
+  # (and in ci_cron_weekly.yml), not the names. "latest" (devdeps) moves to a
+  # new Python first. When 3.11 is dropped, "oldest" becomes 3.12 and both
+  # "intermediate" jobs become 3.13.
   tests:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -30,32 +36,37 @@ jobs:
             python: 3.x
             toxenv: codestyle
 
-          - name: Python 3.11 with remote data and coverage
+          - name: Linux - oldest Python, base dependencies
             os: ubuntu-latest
             python: '3.11'
-            toxenv: py311-test-cov
-            toxargs: -v
-            toxposargs: --remote-data=any
+            toxenv: py311-test
 
-          - name: Python 3.12 (Windows)
+          - name: Linux - oldest Python, oldest dependencies
+            os: ubuntu-latest
+            python: '3.11'
+            toxenv: py311-test-oldestdeps
+
+          - name: Linux - intermediate Python, base dependencies
+            os: ubuntu-latest
+            python: '3.13'
+            toxenv: py313-test
+
+          - name: Windows - intermediate Python, base dependencies
             os: windows-latest
             python: '3.12'
             toxenv: py312-test
 
-          - name: Python 3.11 (MacOS)
+          - name: macOS - current Python, base dependencies
             os: macos-latest
-            python: '3.11'
-            toxenv: py311-test
+            python: '3.14'
+            toxenv: py314-test
 
-          - name: Python 3.13 (MacOS)
-            os: macos-latest
-            python: '3.13'
-            toxenv: py313-test
-
-          - name: Python 3.11 with oldest supported version of key dependencies
+          - name: Linux - current Python, remote data, coverage
             os: ubuntu-latest
-            python: '3.11'
-            toxenv: py311-test-oldestdeps
+            python: '3.14'
+            toxenv: py314-test-cov
+            toxargs: -v
+            toxposargs: --remote-data=any
 
     steps:
     - name: Checkout code
@@ -111,17 +122,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: (Allowed Failure) Python 3.12 with remote data and dev version of key dependencies
+          - name: (Allowed Failure) Linux - latest Python, dev dependencies, remote data
             os: ubuntu-latest
-            python: '3.12'
-            toxenv: py312-test-devdeps
+            python: '3.15'
+            toxenv: py315-test-devdeps
             toxposargs: --remote-data=any
-
-          # doctest failure due to different no. of significant digits on arm64 (#1146)
-          - name: Python 3.12 (macOS)
-            os: macos-latest
-            python: '3.12'
-            toxenv: py312-test
 
     steps:
     - name: Checkout code
@@ -132,6 +137,7 @@ jobs:
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
     - name: Install Python dependencies
       run: python -m pip install --upgrade tox
     - name: Run tests
